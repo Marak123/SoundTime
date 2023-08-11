@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: redis_db
+
+  # Database Postgres
+  db:
+    image: postgres
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    env_file:
+      - ./.env.dev
+    container_name: postgres_db
+
+  # Django Backend Application API
+  backend:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/django
+    ports:
+      - 8000:8000
+    image: app:django
+    container_name: backend_django
+    command: gunicorn core.wsgi --bind 0.0.0.0:8000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+
+  # Celery
+  celery:
+    restart: always
+    build:
+      context: ./backend
+    command: celery -A core worker -l DEBUG
+    volumes:
+      - ./backend:/django
+    container_name: celery
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+      - redis
+      - backend
+
+  # React Frontend Application CLI
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - react_build:/react/build
+    container_name: frontend_react
+
+  # Web Server
+  nginx:
+    image: nginx:latest
+    ports:
+      - 80:8080
+    volumes:
+      - ./nginx/nginx-setup.conf:/etc/nginx/conf.d/default.conf:ro
+      - react_build:/var/www/react
+    depends_on:
+      - backend
+      - frontend
+    container_name: nginx
+
+volumes:
+  react_build:
+  db_data:
