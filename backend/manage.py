@@ -4,12 +4,17 @@ import os
 import sys
 import shutil
 
+# def check_user():
+#     from apis.user.models import User; User.objects.create_superuser('admin', 'admin@example.com', 'admin') if not User.objects.filter(username="admin").exists() else print("`Admin` user exist")
 
 def migration():
     TO_REMOVE = ['__pycache__', 'migrations']
-    CATALOG_TO_CHECK = ['.\\apis\\', '.\\core\\']
+    CATALOG_TO_CHECK = ['/django/apis/', '/django/core/']
     APPLICATION_NAME = ['apis_song', 'apis_auth', 'apis_user']
-    FILE_EXECUTE = ".\\env\\Scripts\\python311.exe .\\manage.py"
+    FILE_EXECUTE = "python /django/manage.py"
+
+    import subprocess
+    from django.db import connection
 
     try:
         for folder in CATALOG_TO_CHECK:
@@ -28,26 +33,50 @@ def migration():
                             print(f"Usunięto folder: {os.path.join(r, dIn)}")
 
 
-        os.remove("./db.sqlite3")
-        print(f"Usunięto baze danych: ./db.sqlite3")
+        # os.remove("./db.sqlite3")
+        # print(f"Usunięto baze danych: ./db.sqlite3")
+
+        # shutil.rmtree("../db_data", ignore_errors=True)
+        # print(f"Usunięto baze danych: ../db_data")
+
+        # shutil.rmtree("../data", ignore_errors=True)
+        # print(f"Usunięto file storage: ../data")
+
+        # os.system(f"django-admin sqlflush")
+
+        try:
+            # subprocess.run([FILE_EXECUTE + ' flush'], check=True, cwd='/django', shell=True)
+
+            with connection.cursor() as cursor:
+                cursor.execute("DROP SCHEMA public CASCADE;")
+                cursor.execute("CREATE SCHEMA public;")
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error clearing database: {e}")
+            exit(-1)
+        else:
+            print("Database is clear.")
+
     except Exception as e:
         print("Wystąpił wyjątek:", e)
+        exit(-1)
+
+    # for app in APPLICATION_NAME:
+    #     os.system(f"{FILE_EXECUTE} migrate { app } zero")
 
     for app in APPLICATION_NAME:
         os.system(f"{FILE_EXECUTE} makemigrations { app }")
 
     os.system(f"{FILE_EXECUTE} makemigrations")
     os.system(f"{FILE_EXECUTE} migrate")
-    os.system(f'{FILE_EXECUTE} shell -c "from apis.user.models import User; User.objects.create_superuser(\'admin\', \'admin@example.com\', \'admin\')"')
+    os.system(f'{FILE_EXECUTE} shell -c "from apis.user.models import User; User.objects.create_superuser("admin", "admin@example.com", "admin") if not User.objects.filter(username="admin").exists() else print("`Admin` user exist")')
 
 def main():
     """Run administrative tasks."""
 
-    komenda = sys.argv[1]
-
-    if komenda == "--run":
-        os.system(".\\env\\Scripts\\python311.exe .\\manage.py runserver")
-    elif komenda == "--migrate":
+    if len(sys.argv) > 1 and sys.argv[1] == "--run":
+        os.system("pip manage.py runserver --bind 0.0.0.0:8000")
+    elif len(sys.argv) > 1 and sys.argv[1] == "--migrate":
         migration()
     else:
 

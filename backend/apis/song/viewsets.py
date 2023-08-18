@@ -8,10 +8,12 @@ from django.shortcuts import get_object_or_404
 
 
 from .serializers import SongSerializer, AuthorSerializer
-from .models import Song, Author
+from .models.models import Author
+from .models.song import Song
 from apis.viewsets import SoftDeleteViewSet
 
 class SongViewSet(SoftDeleteViewSet):
+    model = Song
     queryset = Song.objects.all()
     serializer_class = SongSerializer
     permission_classes = [

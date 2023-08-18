@@ -21,12 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-2dl!66%1sxw7%qpdxyjf430bv)q8uu5x#if$vnpt#zgm^igugt"
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(int(os.environ.get('DEBUG', 0)))
 
 ALLOWED_HOSTS = []
+ALLOWED_HOSTS.extend(
+    filter(
+        None,
+        os.environ.get('ALLOWED_HOSTS', '').split(','),
+    )
+)
 
 # Application definition
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
@@ -134,12 +140,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
-
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'uploads'
 
-MEDIA_AUDIO = BASE_DIR / 'media/audio'
-MEDIA_THUMBNAIL = BASE_DIR / 'media/thumbnail'
+MEDIA_ROOT = '/usr/src/app/mediafiles'
+STATIC_ROOT = '/usr/src/app/staticfiles'
+
+MEDIA_AUDIO = MEDIA_URL + 'audio'
+MEDIA_THUMBNAIL = MEDIA_URL + 'thumbnail'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

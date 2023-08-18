@@ -1,0 +1,95 @@
+version: '3.9'
+
+services:
+
+  # Redis
+  redis:
+    restart: always
+    image: redis:alpine
+    container_name: redis_db
+    ports:
+      - 6379:6379
+
+  # Database PostgreSQL
+  db:
+    restart: always
+    image: postgres
+    container_name: postgres_db
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    env_file:
+      - ./.env.dev
+
+  # Django Backend Application API
+  backend:
+    image: backend_django
+    restart: always
+    container_name: backend_django
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/django
+      - ./data/staticfiles:/usr/src/app/staticfiles
+      - ./data/mediafiles:/usr/src/app/mediafiles
+    ports:
+      - 8000:8000
+    env_file:
+      - ./.env.dev
+    environment:
+      - DEBUG=1
+    depends_on:
+      - db
+
+  # Celery
+  celery:
+    image: celery
+    container_name: celery
+    restart: always
+    build:
+      context: ./backend/
+    command: celery -A core worker -l DEBUG
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+      - redis
+      - backend
+
+  # React Frontend Application CLI
+  frontend:
+    restart: always
+    command: npm start
+    build:
+      context: ./frontend/
+      target: production
+      dockerfile: Dockerfile
+    container_name: frontend_react
+    image: frontend_react
+    volumes:
+      - /react/node_modules
+      - ./frontend:/react
+    ports:
+      - 3000:3000
+    environment:
+      - CHOKIDAR_USEPOLLING=true # create-ui-app <= 5.x
+      - WATCHPACK_POLLING=true # create-ui-app >= 5.x
+      - FAST_REFRESH=false
+      - WDS_SOCKET_PORT=30000 # The mapped port on your host machine
+    depends_on:
+      - backend
+
+  # Web Server
+  nginx:
+    image: nginx
+    container_name: nginx
+    build:
+      context: ./nginx/
+      dockerfile: Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+      - backend
+      - frontend
