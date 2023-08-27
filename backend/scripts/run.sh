@@ -19,25 +19,33 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+WaitForDB () {
+    echo -e "${GREEN}--------------------------- Waiting For DataBase ----------------------------${CYAN}"
+
+    python manage.py wait_for_db
+    if [ $? -ne 0 ]; then
+        exit 3
+    fi
+
+    echo -e "${GREEN}----------------------------- DataBase is Ready -----------------------------"
+}
+
+Migrate () {
+    echo -e "\n${GREEN}---------------------------- Make App Migrations ----------------------------${CYAN}"
+
+    python manage.py migrate_all_models
+    if [ $? -ne 0 ]; then
+        exit 3
+    fi
+
+    echo -e "\n${GREEN}---------------------------- App Migrations is Ready ----------------------------"
+}
 
 echo -e "${PURPLE}Run as user:${RED} $(whoami)"
 
-echo -e "${GREEN}--------------------------- Waiting For DataBase ----------------------------${CYAN}"
+WaitForDB
+# Migrate
 
-python manage.py wait_for_db
-if [ $? -ne 0 ]; then
-    exit 3
-fi
-
-echo -e "${GREEN}----------------------------- DataBase is Ready -----------------------------"
-echo -e "\n${GREEN}---------------------------- Make App Migrations ----------------------------${CYAN}"
-
-python manage.py --migrate
-if [ $? -ne 0 ]; then
-    exit 3
-fi
-
-echo -e "\n${GREEN}---------------------------- App Migrations is Ready ----------------------------"
 echo -e "\n${GREEN}--------------------------- Launching The Application ---------------------------${CYAN}"
 
 gunicorn core.wsgi --bind 0.0.0.0:8000 --workers 4 --threads 4 --reload

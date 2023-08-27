@@ -43,3 +43,13 @@ class Tags(SoftDeleteModel):
 
     def __str__(self) -> str:
         return self.name
+
+class Album(SoftDeleteModel):
+    id = models.UUIDField(unique=True, auto_created=True, blank=False, null=False, editable=False, db_index=True, primary_key=True, default=uuid.uuid4)
+
+    album = models.CharField(null=True, blank=True)
+    artist = models.CharField(null=True, blank=True)
+
+    created = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now_add=True)
+    user_added = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)

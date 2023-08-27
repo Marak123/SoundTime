@@ -91,18 +91,25 @@ class ExtractorField(models.IntegerField):
     CODE_VIMEO = 5
 
     EXTRACTOR_CHOICES = (
-        (CODE_FILE, 'File'),
-        (CODE_YOUTUBE, 'YouTube'),
-        (CODE_SOUNDCLOUD, 'SoundCloud'),
-        (CODE_SPOTIFY, 'Spotify'),
-        (CODE_VIMEO, 'Vimeo'),
+        (CODE_FILE, 'file'),
+        (CODE_YOUTUBE, 'youtube'),
+        (CODE_SOUNDCLOUD, 'soundcloud'),
+        (CODE_SPOTIFY, 'spotify'),
+        (CODE_VIMEO, 'vimeo'),
     )
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args, **kwargs):
+        kwargs['choices'] = self.EXTRACTOR_CHOICES
+        kwargs['default'] = self.CODE_FILE
         super().__init__(*args, **kwargs)
-        self.choices = self.EXTRACTOR_CHOICES
-        self.default = 0
-        self.extractor = 0
+
+    def to_python(self, value):
+        if isinstance(value, str):
+            for choice_code, choice_name in self.EXTRACTOR_CHOICES:
+                if value == choice_name:
+                    return choice_code
+            raise ValueError(f"Invalid choice: {value}")
+        return value
 
     def __str__(self) -> str:
         return self.EXTRACTOR_CHOICES[self.value_from_object(self)][1]
@@ -114,3 +121,11 @@ class ExtractorField(models.IntegerField):
     @property
     def extractor_description(self) -> str:
         return self.EXTRACTOR_CHOICES[self.value_from_object(self)][2]
+
+    def __set__(self, instance, value):
+        if isinstance(value, str):
+            value_map = dict(self.EXTRACTOR_CHOICES)
+            if value in value_map:
+                value = value_map[value]
+        super().__set__(instance, value)
+        self.EXTRACTOR_CHOICES_DICT = dict(self.EXTRACTOR_CHOICES)

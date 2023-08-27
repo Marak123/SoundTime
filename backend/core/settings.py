@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django_extensions',
 
     'apis',
+    'apis.base',
     'apis.user',
     'apis.auth',
     'apis.song',

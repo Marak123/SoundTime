@@ -4,7 +4,7 @@ class ValidURL:
     def __init__(self, url: str) -> None:
         self.url = url
 
-        self.valid_url_reg = r'^((http|https)://)[-a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)$'
+        self.valid_url_reg = r'(((http|https):\/\/)|(\/)|(..\/))(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?'
         self.valid_url_dict = {
             'youtube': (
                 r'(https?://)?(www\.|music\.)?'
@@ -21,7 +21,7 @@ class ValidURL:
         if not re.match(self.valid_url_reg, self.url):
             return None
 
-        for service, validator in self.valid_url_dict:
+        for service, validator in self.valid_url_dict.items():
             if re.match(validator, self.url):
                 return service
 

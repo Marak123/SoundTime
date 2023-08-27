@@ -34,6 +34,8 @@ class UserSerializerField(serializers.CharField):
         # For POST requests, return the string value of the field
         return data
 
+
+
 class GroupSerializer(serializers.ModelSerializer):
     is_admin = UserSerializerField()
 

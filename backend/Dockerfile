@@ -15,6 +15,8 @@ RUN apk update && \
     /py/bin/pip install -r ./requirements.txt && \
     apk del .tmp-deps
 
+RUN apk add --update --no-cache ffmpeg
+
 RUN adduser --disabled-password --no-create-home django && \
     mkdir -p /var/www/web/static && \
     mkdir -p /var/www/web/media/thumbnail && \
