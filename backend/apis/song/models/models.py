@@ -1,13 +1,9 @@
-from django.db import models, transaction
-from django.core.exceptions import ValidationError
+from django.db import models
 import uuid
-from datetime import datetime
-from celery import shared_task
 
 from apis.user.models import User
-from apis.song.DlerMedia.YouTube import YouTubeMedia
-from db.SoftDeleteModel import SoftDeleteModel, SoftDeleteManager
-from .fields import DownloadStatusField, ExtractorField
+from db.SoftDeleteModel import SoftDeleteModel
+
 
 class Author(SoftDeleteModel):
     id = models.UUIDField(unique=True, auto_created=True, blank=False, null=False, editable=False, db_index=True, primary_key=True, default=uuid.uuid4)

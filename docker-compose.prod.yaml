@@ -48,9 +48,13 @@ services:
     image: celery
     container_name: celery
     restart: always
+    # entrypoint: "pip install watchfiles"
     build:
       context: ./backend/
-    command: celery -A core worker -l DEBUG
+    command: celery -A core worker -l DEBUG -E
+    # command:  watchfiles --filter python "celery -A core worker -l DEBUG -E"
+    volumes:
+      - ./data/mediafiles:/usr/src/app/mediafiles
     env_file:
       - ./.env.dev
     depends_on:

@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 
 from .serializers import SongSerializer, AuthorSerializer
 from .models.models import Author
-from .models.song import Song
+from .models.Song import Song
 from apis.viewsets import SoftDeleteViewSet
 
 class SongViewSet(SoftDeleteViewSet):
@@ -35,6 +35,9 @@ class SongViewSet(SoftDeleteViewSet):
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # @action(methods=['GET'], detail=True)
+    # def 
 
 
 class AuthorViewSet(SoftDeleteViewSet):

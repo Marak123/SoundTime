@@ -46,9 +46,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework_simplejwt.token_blacklist',
+    'rest_framework.authtoken',
     'corsheaders',
     'django_extensions',
 
+    'media',
     'apis',
     'apis.base',
     'apis.user',
@@ -140,14 +142,43 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_URL = '/static/'
-MEDIA_URL = '/media/'
+STATIC_URL          = '/static/'
+MEDIA_URL           = '/media/'
 
-MEDIA_ROOT = '/usr/src/app/mediafiles'
-STATIC_ROOT = '/usr/src/app/staticfiles'
+MEDIA_ROOT          = os.environ.get('MEDIA_ROOT', '/usr/src/app/mediafiles')
+STATIC_ROOT         = os.environ.get('STATIC_ROOT', '/usr/src/app/staticfiles')
 
-MEDIA_AUDIO = MEDIA_URL + 'audio'
-MEDIA_THUMBNAIL = MEDIA_URL + 'thumbnail'
+MEDIA_URL_AUDIO     = 'audio/'
+MEDIA_URL_THUMBNAIL = 'thumbnail/'
+
+""" path to the folder where audio files will be saved """
+OUTPUT_AUDIO_PATH   = f"{MEDIA_ROOT}/{os.environ.get('NAME_AUDIO_OUTPUT', 'audio')}/"
+
+if not os.path.exists(OUTPUT_AUDIO_PATH):
+    os.makedirs(OUTPUT_AUDIO_PATH)
+
+""" path to the folder where image files will be saved """
+OUTPUT_IMAGE_PATH   = f"{MEDIA_ROOT}/{os.environ.get('NAME_IMAGE_OUTPUT', 'images')}/"
+
+if not os.path.exists(OUTPUT_IMAGE_PATH):
+    os.makedirs(OUTPUT_IMAGE_PATH)
+
+""" path to the folder where temporary files will be saved """
+OUTPUT_TEMP_PATH    = f"{MEDIA_ROOT}/{os.environ.get('NAME_TEMP_OUTPUT', 'temp')}/"
+
+if not os.path.exists(OUTPUT_TEMP_PATH):
+    os.makedirs(OUTPUT_TEMP_PATH)
+
+
+THUMBNAIL_NAME_RESOLUTION = {
+    '144': 'thumbnail_144p.webp',
+    '240': 'thumbnail_240p.webp',
+    '360': 'thumbnail_360p.webp',
+    '480': 'thumbnail_480p.webp',
+    '720': 'thumbnail_720p.webp',
+    'ORIGINAL': 'thumbnail_original.webp'
+}
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -178,3 +209,4 @@ APPEND_SLASH=False
 
 CELERY_BROKER_URL = "redis://redis:6379"
 CELERY_RESULT_BACKEND = "redis://redis:6379"
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

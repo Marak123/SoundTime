@@ -1,89 +1,102 @@
 from django.db import models, transaction
 from django.core.exceptions import ValidationError
 import uuid
-from datetime import timedelta, datetime
-from celery import shared_task
+from datetime import timedelta
 
 from apis.user.models import User
-from apis.song.DlerMedia.YouTube import YouTubeMedia
 from db.SoftDeleteModel import SoftDeleteModel, SoftDeleteManager
 
 from .models import Author, Tags, Categories, Album
-from .fields import DownloadStatusField, ExtractorField
+from .TaskProgress import DownloadProgress
 
 
 class SongManager(SoftDeleteManager):
-    def create_by_url(self, **kwargs):
-        if not 'url' in kwargs:
-            raise ValidationError("URL is needed to create object as URL.")
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            super().delete(*args, **kwargs
 
-        self.url = kwargs.pop('url')
-        self.uuidName = uuid.uuid4()
+)
+    # def create_by_url(self, **kwargs):
+    #     if not 'url' in kwargs:
+    #         raise ValidationError("URL is needed to create object as URL.")
 
-        self.info = YouTubeMedia.infoURL(self.url)
+    #     self.url = kwargs.pop('url')
+    #     self.uuidName = uuid.uuid4()
 
-        self.user_added = User.objects.get(pk=kwargs.pop('user_added', None))
+    #     try:
+    #         self.info = Media.info(self.url)
+    #     except ValueError as e:
+    #         raise ValidationError(e)
 
-        self.author = Author.objects.get_or_create(
-                            name= self.info['name_author'],
-                            channelId= self.info['channel_id'],
-                            channelUrl= self.info['channel_url'],
-                            defaults={
-                                "user_added": self.user_added
-                            }
-                        )[0]
+    #     self.user_added = User.objects.get(pk=kwargs.pop('user_added', None))
 
-        self.album = Album.objects.get_or_create(
-                            album= self.info['album'],
-                            artist= self.info['artist'],
-                            defaults={
-                                "user_added": self.user_added
-                            }
-                        )[0]
+    #     self.author = Author.objects.get_or_create(
+    #                         name= self.info['name_author'],
+    #                         channelId= self.info['channel_id'],
+    #                         channelUrl= self.info['channel_url'],
+    #                         defaults={
+    #                             "user_added": self.user_added
+    #                         }
+    #                     )[0]
 
-        self.release_date = self.info['release_date']
+    #     self.album = Album.objects.get_or_create(
+    #                         album= self.info['album'],
+    #                         artist= self.info['artist'],
+    #                         defaults={
+    #                             "user_added": self.user_added
+    #                         }
+    #                     )[0]
 
-        if len(self.release_date) == 8:
-            self.release_date = f"{self.release_date[0:3]}-{self.release_date[4:5]}-{self.release_date[6:7]}"
+    #     self.release_date = self.info['release_date']
 
-        print(self.info)
+    #     if len(self.release_date) == 8:
+    #         self.release_date = f"{self.release_date[0:3]}-{self.release_date[4:5]}-{self.release_date[6:7]}"
 
-        obj = Song.objects.create(**{
-            'id':               self.uuidName,
-            'extractor_name':   self.info.get('extractor', None),
-            'user_added':       self.user_added,
+    #     obj = Song.objects.create(**{
+    #         'id':               self.uuidName,
+    #         'extractor_name':   self.info.get('extractor', None),
+    #         'user_added':       self.user_added,
 
-            'url':              self.url,
-            'title':            self.info.get('title', None),
-            'duration':         timedelta(seconds=self.info.get('duration', 0)),
-            'release_date':     self.release_date,
-            'author':           self.author,
+    #         'url':              self.url,
+    #         'title':            self.info.get('title', None),
+    #         'duration':         timedelta(seconds=self.info.get('duration', 0)),
+    #         'release_date':     self.release_date,
+    #         'author':           self.author,
 
-            'url_thumbnail':    self.info.get('url_thumbnail', None),
+    #         'url_thumbnail':    self.info.get('url_thumbnail', None),
 
-            'description':      self.info.get('description', None),
-            'album':            self.album,
-            'age_limit':        self.info.get('age_limit', None),
+    #         'description':      self.info.get('description', None),
+    #         'album':            self.album,
+    #         'age_limit':        self.info.get('age_limit', None),
 
-            'audio_bitrate':    self.info.get('audio_bitrate', None),
-            'audio_protocol':   self.info.get('audio_protocol', None),
-            'audio_extension':  self.info.get('audio_extension', None),
+    #         'audio_bitrate':    self.info.get('audio_bitrate', None),
+    #         'audio_protocol':   self.info.get('audio_protocol', None),
+    #         'audio_extension':  self.info.get('audio_extension', None),
 
-            'status':           Song.CODE_QUEUED,
-        })
+    #         # 'status':           Song.CODE_QUEUED,
+    #         'download_progress': DownloadProgress.objects.create(id=self.uuidName),
+    #     })
 
-        obj.categories.set([ Categories.objects.get_or_create(name=cn, defaults={
-                                "user_added": self.user_added
-                            })[0] for cn in self.info['categories'] ])
+    #     obj.categories.set([ Categories.objects.get_or_create(name=cn, defaults={
+    #                             "user_added": self.user_added
+    #                         })[0] for cn in self.info['categories'] ])
 
-        obj.tags.set([ Tags.objects.get_or_create(name=tn, defaults={
-                                "user_added": self.user_added
-                            })[0] for tn in self.info['tags'] ])
+    #     obj.tags.set([ Tags.objects.get_or_create(name=tn, defaults={
+    #                             "user_added": self.user_added
+    #                         })[0] for tn in self.info['tags'] ])
 
-        yt = YouTubeMedia(obj)
-        yt.download(self.url, self.uuidName.__str__())
 
-        return obj
+    #     try:
+    #         Media.download(self.url, self.id.__str__())
+    #     except Exception as e:
+    #         self.hard_delete()
+
+    #         raise ValidationError({
+    #             "error_message": str(e)
+    #         })
+
+    #     return obj
+
 
 
 class Song(SoftDeleteModel):
@@ -102,17 +115,17 @@ class Song(SoftDeleteModel):
     )
 
 
-    CODE_QUEUED = 0
-    CODE_DOWNLOADING = 1
-    CODE_FINISHED = 2
-    CODE_ERROR = 3
+    # CODE_QUEUED = 0
+    # CODE_DOWNLOADING = 1
+    # CODE_FINISHED = 2
+    # CODE_ERROR = 3
 
-    STATUS_CHOICES = (
-        (CODE_QUEUED, 'queued', 'Queued'),
-        (CODE_DOWNLOADING, 'downloading', 'Downloading'),
-        (CODE_FINISHED, 'finished', 'Finished'),
-        (CODE_ERROR, 'error', 'Error'),
-    )
+    # STATUS_CHOICES = (
+    #     (CODE_QUEUED, 'queued', 'Queued'),
+    #     (CODE_DOWNLOADING, 'downloading', 'Downloading'),
+    #     (CODE_FINISHED, 'finished', 'Finished'),
+    #     (CODE_ERROR, 'error', 'Error'),
+    # )
 
     id              = models.UUIDField(unique=True, auto_created=True, blank=False, null=False, editable=False, db_index=True, primary_key=True, default=uuid.uuid4)
 
@@ -129,8 +142,8 @@ class Song(SoftDeleteModel):
     author          = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True)
 
     # Path Data
-    audio_file      = models.FileField(blank=True, null=True, editable=False)
-    thumbnail_file  = models.ImageField(blank=True, null=True, editable=False)
+    audio_file      = models.FileField(blank=True, null=True, editable=False, max_length=255)
+    thumbnail_file  = models.ImageField(blank=True, null=True, editable=False, max_length=255)
     url_thumbnail   = models.URLField(blank=True)
 
     # Additional Information
@@ -141,11 +154,10 @@ class Song(SoftDeleteModel):
     age_limit       = models.IntegerField(default=0)
 
     audio_bitrate   = models.IntegerField(null=True, blank=True)
-    audio_protocol  = models.CharField(null=True, blank=True)
-    audio_extension = models.CharField(null=True, blank=True)
 
+    download_progress = models.ForeignKey(DownloadProgress, on_delete=models.CASCADE, null=True, blank=True)
 
-    objects = SongManager()
+    # objects = SongManager()
 
     def __str__(self) -> str:
         return self.title
@@ -196,57 +208,57 @@ class Song(SoftDeleteModel):
 
 
 
-    """"
-        Stores information about the status of adding an object to the system.
-        Possible options:
-            - Queued (id = 0)       = waiting in queue to be added (download)
-            - Downloading (id = 1)  = downloading
-            - Finished (id = 2)     = additions completed
-            - Error (id = 3)        = there was a problem adding
+    # """"
+    #     Stores information about the status of adding an object to the system.
+    #     Possible options:
+    #         - Queued (id = 0)       = waiting in queue to be added (download)
+    #         - Downloading (id = 1)  = downloading
+    #         - Finished (id = 2)     = additions completed
+    #         - Error (id = 3)        = there was a problem adding
 
-        Additional information to the field:
-            0. Queued:
-                - queue_position            = position in the queue
-                - estimated_wait_time       = approximate waiting time
-            1. Downloading
-                - download_progress         = download progress (in percent, int)
-                - estimated_wait_time       = approximate waiting time
-            2. Finished
-                - download_time             = final download time length
-            3. Error
-                - error_details             = information about the error that occurred
-    """
+    #     Additional information to the field:
+    #         0. Queued:
+    #             - queue_position            = position in the queue
+    #             - estimated_wait_time       = approximate waiting time
+    #         1. Downloading
+    #             - download_progress         = download progress (in percent, int)
+    #             - estimated_wait_time       = approximate waiting time
+    #         2. Finished
+    #             - download_time             = final download time length
+    #         3. Error
+    #             - error_details             = information about the error that occurred
+    # """
 
-    status = models.IntegerField(default=None, null=True, blank=True)
+    # status = models.IntegerField(default=None, null=True, blank=True)
 
-    def set_status(self, value):
-        if isinstance(value, str):
-            for code, choice, pname in self.STATUS_CHOICES:
-                if value == choice or value == pname:
-                    self.status = code
-                    break
-            else:
-                raise ValueError("Invalid choice.")
-        else:
-            self.status = value
+    # def set_status(self, value):
+    #     if isinstance(value, str):
+    #         for code, choice, pname in self.STATUS_CHOICES:
+    #             if value == choice or value == pname:
+    #                 self.status = code
+    #                 break
+    #         else:
+    #             raise ValueError("Invalid choice.")
+    #     else:
+    #         self.status = value
 
-    def get_status(self):
-        for code, choice, pname in self.STATUS_CHOICES:
-            if self.status == code:
-                return choice
-        return None
+    # def get_status(self):
+    #     for code, choice, pname in self.STATUS_CHOICES:
+    #         if self.status == code:
+    #             return choice
+    #     return None
 
-    def get_status_p(self):
-        for code, choice, pname in self.STATUS_CHOICES:
-            if self.status == code:
-                return pname
-        return None
+    # def get_status_p(self):
+    #     for code, choice, pname in self.STATUS_CHOICES:
+    #         if self.status == code:
+    #             return pname
+    #     return None
 
-    status_name         = property(get_status, set_status)
-    status_pname        = property(get_status_p, set_status)
+    # status_name         = property(get_status, set_status)
+    # status_pname        = property(get_status_p, set_status)
 
-    queue_position      = models.IntegerField(null=True, blank=True, default=None)
-    download_progress   = models.FloatField(null=True, blank=True, default=None)
-    estimated_wait_time = models.FloatField(null=True, blank=True, default=None)
-    download_time       = models.FloatField(null=True, blank=True, default=None)
-    error_details       = models.CharField(null=True, blank=True, default=None)
+    # queue_position      = models.IntegerField(null=True, blank=True, default=None)
+    # download_progress   = models.FloatField(null=True, blank=True, default=None)
+    # estimated_wait_time = models.FloatField(null=True, blank=True, default=None)
+    # download_time       = models.FloatField(null=True, blank=True, default=None)
+    # error_details       = models.CharField(null=True, blank=True, default=None)

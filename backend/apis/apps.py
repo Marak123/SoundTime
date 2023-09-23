@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class CoreConfig(AppConfig):
+class ApisConfig(AppConfig):
     name = 'apis'
     label = 'apis'
